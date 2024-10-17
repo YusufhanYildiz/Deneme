@@ -12,7 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Z.Dapper.Plus;
-
+using System.Configuration;
 namespace WindowsFormsApp1
 {
     public partial class Form1 : Form
@@ -25,7 +25,6 @@ namespace WindowsFormsApp1
         private void cboSheet_SelectedIndexChanged(object sender, EventArgs e)
         {
             DataTable dt = tableCollection[cboSheet.SelectedItem.ToString()];
-            //dataGridView1.DataSource = dt;
             if (dt != null)
             {
                 List<SirketGridDeneme> sirketGridDenemes = new List<SirketGridDeneme>(); 
@@ -82,7 +81,7 @@ namespace WindowsFormsApp1
                                 tableCollection = result.Tables;
                                 cboSheet.Items.Clear();
                                 foreach (DataTable table in tableCollection)
-                                    cboSheet.Items.Add(table.TableName);//Add Sheet to Combobox
+                                    cboSheet.Items.Add(table.TableName);
                             }
                         }
                     }
@@ -94,7 +93,13 @@ namespace WindowsFormsApp1
         {
             try
             {
-                string connectionString = "Server=.;Database=dbdeneme; User Id=sa;Password=123;";
+                string server = txtsqladi.Text;
+                string database = txtdbadi.Text;
+                string username = txtkullaniciad.Text;
+                string password = txtsifre.Text;
+                string tableName = txttabload.Text;
+
+                string connectionString = $"Server={server};Database={database};User Id={username};Password={password};";
                 DapperPlusManager.Entity<SirketGridDeneme>().Table("sirketdeneme");
                 List<SirketGridDeneme> sirketGridDenemes = sirketGridDenemeBindingSource.DataSource as List<SirketGridDeneme>;
                 if (sirketGridDenemes != null)
@@ -109,6 +114,57 @@ namespace WindowsFormsApp1
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message,"Message", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnKaydet_Click(object sender, EventArgs e)
+        {
+            string server = txtsqladi.Text;
+            string database = txtdbadi.Text;
+            string username = txtkullaniciad.Text;
+            string password = txtsifre.Text;
+            string tableName = txttabload.Text;
+
+            string connectionString = $"Server={server};Database={database};User Id={username};Password={password};";
+            try
+            {
+                // Test the connection
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+                    MessageBox.Show("Connection successful!");
+
+                    // Save the settings to app.config
+                    SaveSettings(connectionString, tableName);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Connection failed: {ex.Message}");
+            }
+        }
+
+        private void SaveSettings(string connectionString, string tableName)
+        {
+            try
+            {
+                Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+
+                config.ConnectionStrings.ConnectionStrings.Clear();
+                config.ConnectionStrings.ConnectionStrings.Add(new ConnectionStringSettings("DefaultConnection", connectionString));
+
+                config.AppSettings.Settings.Clear();
+                config.AppSettings.Settings.Add("TableName", tableName);
+
+                config.Save(ConfigurationSaveMode.Modified);
+                ConfigurationManager.RefreshSection("connectionStrings");
+                ConfigurationManager.RefreshSection("appSettings");
+
+                MessageBox.Show("Settings saved successfully!");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error saving settings: {ex.Message}");
             }
         }
     }
